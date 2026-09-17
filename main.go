@@ -73,6 +73,7 @@ func run() error {
 	}
 
 	s := newServer(ctx)
+	go s.startWarmer(ctx)
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/token", s.handleToken)
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {

@@ -326,3 +326,25 @@ func getAccessTokenPayload(rCtx, browserCtx context.Context, origin string, cook
 	}
 	return body, nil
 }
+
+func (s *server) startWarmer(ctx context.Context) {
+	ticker := time.NewTicker(15 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			s.mu.Lock()
+			needRefresh := !s.cached.usable() || time.Now().After(s.refreshAfter)
+			hasFlight := s.flight != nil
+			s.mu.Unlock()
+
+			if needRefresh && !hasFlight {
+				slog.Debug("Warmer refreshing anonymous Spotify token in background")
+				_, _ = s.getToken(ctx, nil)
+			}
+		}
+	}
+}
+
